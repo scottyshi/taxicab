@@ -31,8 +31,9 @@ getStartEndCoords <- function(file) {
 	return (coords)
 }
 
-#usage, cosine(matrix[1,],matrix[2,])
+#usage, cosineSimilarity(matrix[1,],matrix[2,])
 #returns the cosine of the angle in-between 
+# ~1 means they are very similar
 cosineSimilarity <- function(vector1,vector2) {
 	#if (length(vector1) != length(vector2)) {
 	#	return NULL;
@@ -50,6 +51,45 @@ cosineSimilarity <- function(vector1,vector2) {
 	product <- dotProduct/(length1 * length2);
 	return (product);
 }
+
+#usage: groupSimilars(matrix)
+#assuming coords is an (n x 4) matrix
+groupSimilars <- function(coords)
+{
+	#I want to group together trips that are similar within some threshhold
+	#the cosine similarity function returns cos(angle between 2 vectors)
+	#i'll only group two paths together as 'similar' if they pass a certain
+	#threshold 
+
+	threshold <- 0.999992 #CHANGE THIS!?
+	len <- length(coords)/4
+
+	masterList <- list()
+
+	for (i in 1:len)#n^2 function to make all comparisons
+	{
+		rowSim <- c(i); #this will hold a row of all items 
+		for (j in (i+1):len)
+		{
+			if (cosineSimilarity(coords[i,], coords[j,]) >= threshold)
+			{	#I want to group together similar paths
+				#I'll append similar paths in one row
+				rowSim <- c(rowSim, j); 
+			}
+		}
+		masterList[[i]] = rowSim
+	}
+
+}
+
+
+
+
+
+
+
+
+
 
 
 
