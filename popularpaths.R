@@ -130,10 +130,49 @@ groupSimilars <- function(coords,threshold=0.9999999)
 
 
 
+#input: all NORMALIZED paths that seem to have a similar endpoint as the path
+	#whose endpoint we are trying to predict
+#output: a 2 item vector, "predict"
+	#if i see that there is a similar endpoint, I will return
+		#predict[1] = predicted xcoord = mean(x), #predict[2] = mean(y)
+	#if i don't see there's a similar endpoint, I will return
+		#predict[1] = n/a, predict[2] = n/a
+determineSimilarEnd <- function(coords) {
+	xcoords <- vector() #this will keep a track of all the end x coords
+	ycoords <- vector() #this will keep track of all the end y coords
+	
+	#filling in 'xcoords' and 'ycoords'
+	for (i in 1:length(coords)) {
+		xcoords[i] = coords[[i]][[length(coords[[i]])]][1]
+		ycoords[i] = coords[[i]][[length(coords[[i]])]][2]
+	}
 
+	#this standard deviation function 'sd' uses Besel's correction
+		#it will use denominator "n-1" instead of "n"
+	sdx <- sd(xcoords)
+	sdy <- sd(ycoords)
+	mx <- mean(xcoords)
+	my <- mean(ycoords)
+	cvx <- sdx / mx
+	cvy <- sdy / my
+	#cvx and cvy are coefficients of variations, they describe how much %
+	#variation is within a dataset based on the mean
+	#I will use it in the following way: if the cv for x and y are below
+	#a certain 'threshold', i'll determine that I can conclude a ending x,y
+	#coordinate from this 
 
-
-
+	threshold <- 0.05 #5% variability based on the mean
+	predict <- vector()
+	if(cvx < threshold && cvy < threshold) { #can conclude, return means
+		predict[1] = mx
+		predict[2] = my
+	}
+	else {
+		is.na <- predict[1]
+		is.na <- predict[2]
+	}
+	return(predict)
+}
 
 
 	#cosine similarity -- 2 routes will be similar if there's close points
