@@ -1,3 +1,35 @@
+
+
+getAllCoords <- function(file) {
+
+	data <- read.csv(file, head=TRUE, sep=",")#loading in the data
+	polylines <- data$POLYLINE # this will grab all the polylines from the data
+	#polylines <- polylines[-c(1)] #this will delete the first row of data
+	polylines <- levels(polylines) #this will contain all the data w/o suffix summary
+
+	options(digits=8) #this will allow for 8 digit variables (which we need)
+
+	coords <- list()
+#matrix(, nrow=length(polylines), ncol=4) #creating the matrix
+					# to hold the x/y start/end coordinates
+
+	#for loop to grab start/end x/y of polylines
+	for (i in 1:length(polylines))
+	{
+		str <- strsplit(strsplit(polylines[i],"\\[\\[")[[1]][2],"\\]\\]")[[1]][1] #get rid of start and end brackets
+		arr <- strsplit(str, "\\],\\[")[[1]] #get all coords
+		trip <- list()
+		for (j in 1:length(arr))
+		{
+			x_y_tuple = as.numeric(strsplit(arr[j],",")[[1]])
+			trip <- append(trip,list(x_y_tuple))
+		}
+		coords[[i]] = trip
+	}
+	return (coords)
+}
+
+
 getStartEndCoords <- function(file) {
 
 	data <- read.csv(file, head=TRUE, sep=",")#loading in the data
@@ -30,6 +62,7 @@ getStartEndCoords <- function(file) {
 
 	return (coords)
 }
+
 
 #usage, cosineSimilarity(matrix[1,],matrix[2,])
 #returns the cosine of the angle in-between 
@@ -68,6 +101,13 @@ groupSimilars <- function(coords,threshold=0.9999999)
 	for (i in 1:(len-1))#n^2 function to make all comparisons
 	{
 		rowSim <- c(i); #this will hold a row of all items 
+		for (j in 1:i) 
+		{
+			if (is.element(i,masterList[[j]])) {
+				rowSim <- c(rowSim, j);
+			}
+				
+		}
 		for (j in (i+1):len)
 		{
 			if (cosineSimilarity(coords[i,], coords[j,]) >= threshold)
@@ -76,13 +116,16 @@ groupSimilars <- function(coords,threshold=0.9999999)
 				rowSim <- c(rowSim, j); 
 			}
 		}
-		masterList[[i]] = rowSim
+		masterList[[i]] = rowSim;
 	}
 	return (masterList);
 
 }
 
-
+# First, find the largest latitude and longitude, and create XY box.
+# Second, Data Structures for the points
+# Third, Retune the similarity
+# Finally, write a function that average out the endpoints
 
 
 
