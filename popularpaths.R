@@ -158,14 +158,14 @@ determineSimilarEnd <- function(coords) {
 
 	threshold <- 0.05 #5% variability based on the mean
 	predict <- vector()
-	#if(cvx < threshold && cvy < threshold) { #can conclude, return means
+	if(cvx < threshold && cvy < threshold) { #can conclude, return means
 		predict[1] = mx
 		predict[2] = my
-	#}
-	#else {
+	}
+	else {
 		is.na <- predict[1]
 		is.na <- predict[2]
-	#}
+	}
 	return(predict)
 }
 ################################################################################
@@ -174,6 +174,8 @@ determineSimilarEnd <- function(coords) {
 #Function in order to guess the endpoints of a function
 ################################################################################
 #args: list, list of coordinates to guess based on
+
+
 predictEndPoints <- function(coords,similarIndex,offset, isTranslated=FALSE) {
 	#First, get list of similar
 	similars <- c()
