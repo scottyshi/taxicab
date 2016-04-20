@@ -85,19 +85,21 @@ getSimilarityMatrix <- function(coords, indexOfTrip,index1,index2,threshold=.999
 
 #usage: 
 #input: normalized list of all trips and its respective ticks
+	#and vector of all the indicies of paths we want to consider
 #output: matrix of only x and y coordinates of all the endpoints
-getEndpointMatrix <- function(coords) {
-	endpoints <- matrix(nrow=length(coords), ncol=2)
-	for (i in 1:length(coords)){
-		endpoints[i, 1] = coords[[i]][[length(coords[[i]])]][1]
-		endpoints[i, 2] = coords[[i]][[length(coords[[i]])]][2]
+getEndpointMatrix <- function(coords, similar) {
+	endpoints <- matrix(nrow=length(similar), ncol=2)
+	for (i in 1:length(similar)){
+		endpoints[i, 1] = coords[[similar[i]]][[length(coords[[similar[i]]])]][1]
+		endpoints[i, 2] = coords[[similar[i]]][[length(coords[[similar[i]]])]][2]
 	}
 	return(endpoints)
 }
 
-#Function that takes similarEndPoints in a l x 2 matrix, and the number of clusters,
-#and assigns a cluster to each point, and outputs an l x 3 matrix with cluster partition
-# appended.
+#usage:
+#input: matrix of endpoints (n x 2) matrix, # of clusters to be created
+#output: returns a (n x 3) matrix, third column denots the cluster 
+	#the point belongs to
 getClusteredEndpoint <- function(similarEndPoints,numClusters) {
 	fit <- kmeans(similarEndPoints,numClusters)
 	aggregate(similarEndPoints,by=list(fit$cluster),FUN=mean)
@@ -105,18 +107,36 @@ getClusteredEndpoint <- function(similarEndPoints,numClusters) {
 	return (similarEndPoints)
 }
 
+#usage:
+#input: (n x 3) matrix of the points and the clusters they belong to
+#output: (#clusters x 3) matrix denoting mean of coordinates in each
+	#cluster and probability 
+#getEndpointProbabilities <- function(
 
 #PREPARATION GOES AS FOLLOWS:
 #1. specify file to read from
 #coords <- getAllCoords("test.csv")
+
 #2. define boundaries given these data
 #fourvector <- getMaxMins(coords)
+
 #3. reformat your data
 #coords <- translateAll(coords, fourvector)
 # ** coords is now a normalized set of every tick of every trip
-#4. take only the endpoints as we will only consider them for clustering
-#endpoints <- getEndpointMatrix(coords)
-# ** endpoints is now a length(coords) x 2 matrix containing all x and y
+
+#4. we consider only similar paths to our unknown path
+#get a vector 'similars' that contains the indicies (within coords) of these paths
+
+#5. take only the endpoints as we will only consider them for clustering
+#endpoints <- getEndpointMatrix(coords, similars)
+# ** endpoints is now a length(similars) x 2 matrix containing all x and y
 # coordinates of the endpoints
+
+#6 determine the number of clusters to be used (TBD)
+
+#7 append the cluster each point belongs to into the matrix
+#similarEndpoints <- getClusteredEndpoint(endpoints, numClusters)
+
+#8 get a probability
 
 
