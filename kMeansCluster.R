@@ -178,5 +178,32 @@ main <- function(file,arg=1) {
 	return(prob)
 }
 
+#allocate drivers in a way that minimum gas is wasted
+
+#assumptions: 
+#once i'm done with ride, i stop unless i see PURPOSE
+#all cars spend same amt of gas for same trip
+#minimize total amt of gas used by everyone
+
+#looking at timestamps -- look at any specific interval of time + starting time
+# slice time between 2 mins and half an hour (mb every 10 mins in between)
+# locations of customers = starting point of every trip
+# do bipartite matching between unbusy drivers and customers
+
+#see how "fair" we are --> how many rides we all get 
+# --> each taxi driver should get a minimum number of trips
 
 
+# predict when taxi driver will be free based on which cluster it might end up in
+# --> try to have an offline solution in the meantime
+
+
+#given 2 different drivers, how likely is that if they go on the same
+#path will they take the same time to complete the trip?
+
+
+#statistical techniques
+# linear regression
+# polynomial regression
+# CART: classification and regresstion trees
+# look at first 'k' ticks and plot how likely you are to predict correctly 
