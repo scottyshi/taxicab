@@ -1,4 +1,4 @@
-
+source("
 
 getAllCoords <- function(file) {
 
@@ -193,6 +193,7 @@ predictEndPoints <- function(coords,similarIndex,offset, isTranslated=FALSE) {
 	return (determineSimilarEnd(wantedcoords))
 
 }
+
 
 
 

@@ -66,16 +66,25 @@ getEndpointMatrix <- function(coords) {
 	return(endpoints)
 }
 
+#
+getClusteredEndpoint <- function(similarEndPoints,numClusters) {
+	fit <- kmeans(similarEndPoints,numClusters)
+	aggregate(similarEndPoints,by=list(fit$cluster),FUN=mean)
+	similarEndPoints <- data.frame (similarEndPoints, fit$cluster) 
+	return (similarEndPoints)
+}
+
+
 #PREPARATION GOES AS FOLLOWS:
 #1. specify file to read from
-coords <- getAllCoords("test.csv")
+#coords <- getAllCoords("test.csv")
 #2. define boundaries given these data
-fourvector <- getMaxMins(coords)
+#fourvector <- getMaxMins(coords)
 #3. reformat your data
-coords <- translateAll(coords, fourvector)
+#coords <- translateAll(coords, fourvector)
 # ** coords is now a normalized set of every tick of every trip
 #4. take only the endpoints as we will only consider them for clustering
-endpoints <- getEndpointMatrix(coords)
+#endpoints <- getEndpointMatrix(coords)
 # ** endpoints is now a length(coords) x 2 matrix containing all x and y
 # coordinates of the endpoints
 
