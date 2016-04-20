@@ -1,4 +1,3 @@
-source("
 
 getAllCoords <- function(file) {
 

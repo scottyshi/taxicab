@@ -54,6 +54,35 @@ translateAll <- function(coords,fourvector) {
 	return (coords)
 }
 
+
+#Function to get the similarity matrix.
+#Takes coords in normal list format, index of trip we want to predict,
+#and the indexes we want to compare.
+
+getSimilarityMatrix <- function(coords, indexOfTrip,index1,index2,threshold=.999) {
+	comparisonVector <- c(coords[[indexOfTrip]][[index1]],coords[[indexOfTrip]][[index2]])
+	len <- length(coords)
+
+	masterList <- c()
+
+	for (i in 1:len)
+	{
+		if (i == indexOfTrip) next
+		if (length(coords[[i]]) < index2) next
+		if (cosineSimilarity(c(coords[[i]][[index1]], coords[[i]][[index2]]),comparisonVector) >= threshold)
+		{				
+			masterList <- c(masterList, i)
+		}
+	}
+
+	matrix <- matrix(nrow=length(masterList), ncol=2)
+	for (i in 1:length(masterList)) {
+		matrix[i,1]=coords[[masterList[i]]][[length(coords[[masterList[i]]])]][1]
+		matrix[i,2]=coords[[masterList[i]]][[length(coords[[masterList[i]]])]][2]
+	}
+	return (matrix)
+}
+
 #usage: 
 #input: normalized list of all trips and its respective ticks
 #output: matrix of only x and y coordinates of all the endpoints
@@ -66,7 +95,9 @@ getEndpointMatrix <- function(coords) {
 	return(endpoints)
 }
 
-#
+#Function that takes similarEndPoints in a l x 2 matrix, and the number of clusters,
+#and assigns a cluster to each point, and outputs an l x 3 matrix with cluster partition
+# appended.
 getClusteredEndpoint <- function(similarEndPoints,numClusters) {
 	fit <- kmeans(similarEndPoints,numClusters)
 	aggregate(similarEndPoints,by=list(fit$cluster),FUN=mean)
