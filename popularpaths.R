@@ -1,4 +1,3 @@
-source("
 
 getAllCoords <- function(file) {
 
@@ -198,6 +197,10 @@ predictEndPoints <- function(coords,similarIndex,offset, isTranslated=FALSE) {
 
 
 
+
+
+
+
 	#cosine similarity -- 2 routes will be similar if there's close points
 	#put all points into k-dimensional space
 	#use start / end x and y coordinates to create 4 dimensional vectors
@@ -210,11 +213,6 @@ predictEndPoints <- function(coords,similarIndex,offset, isTranslated=FALSE) {
 	#PART TWO!!!
 	#We have data about where trips start
 	#We want to predict where it will end (w/ 
-
-
-
-
-
 
 #usage: OLDgroupSimilars(matrix)
 #assuming coords is an (n x 4) matrix
