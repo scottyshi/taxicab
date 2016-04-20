@@ -1,3 +1,5 @@
+options(digits=8) #this will allow for 8 digit variables (which we need)
+
 #taken from "popularpaths.R"
 getAllCoords <- function(file) {
 
@@ -5,8 +7,6 @@ getAllCoords <- function(file) {
 	polylines <- data$POLYLINE # this will grab all the polylines from the data
 	#polylines <- polylines[-c(1)] #this will delete the first row of data
 	polylines <- levels(polylines) #this will contain all the data w/o suffix summary
-
-	options(digits=8) #this will allow for 8 digit variables (which we need)
 
 	coords <- list()
 #matrix(, nrow=length(polylines), ncol=4) #creating the matrix
@@ -54,6 +54,27 @@ translateAll <- function(coords,fourvector) {
 	return (coords)
 }
 
+#taken from 'popularpaths.R'
+#usage, cosineSimilarity(matrix[1,],matrix[2,])
+#returns the cosine of the angle in-between 
+# ~1 means they are very similar
+cosineSimilarity <- function(vector1,vector2) {
+	#if (length(vector1) != length(vector2)) {
+	#	return NULL;
+	#}
+	dotProduct = 0;
+	length1 = 0;
+	length2 = 0;
+	for (i in 1:length(vector1)) {
+		dotProduct <- dotProduct + vector1[i] * vector2[i];
+		length1 <- length1 + (vector1[i])^2;
+		length2 <- length2 + (vector2[i])^2;
+	}
+	length1 <- sqrt(length1);
+	length2 <- sqrt(length2);
+	product <- dotProduct/(length1 * length2);
+	return (product);
+}
 
 #Function to get the similarity matrix.
 #Takes coords in normal list format, index of trip we want to predict,
@@ -83,20 +104,44 @@ getSimilarityMatrix <- function(coords, indexOfTrip,index1,index2,threshold=.999
 	return (matrix)
 }
 
-#usage: 
-#input: normalized list of all trips and its respective ticks
-	#and vector of all the indicies of paths we want to consider
-#output: matrix of only x and y coordinates of all the endpoints
-getEndpointMatrix <- function(coords, similar) {
-	endpoints <- matrix(nrow=length(similar), ncol=2)
-	for (i in 1:length(similar)){
-		endpoints[i, 1] = coords[[similar[i]]][[length(coords[[similar[i]]])]][1]
-		endpoints[i, 2] = coords[[similar[i]]][[length(coords[[similar[i]]])]][2]
+#usage: get probabilities that the path will go to the given clusters
+#input: matrix of endpoints(n x 2) matrix, # of clusters to be created
+#output: (#cluster by 3)  matrix that denotes probability as well as the
+	#mean x and y coordinates of each cluster
+getProbabilities <- function(mat, numClusters) {
+	fit <- kmeans(mat, numClusters)
+	prob <- matrix(nrow=numClusters, ncol=3)
+	#initalizing all probabilities by 0
+	for (i in 1:numClusters) {
+		prob[i,1] = 0
 	}
-	return(endpoints)
+	clusvec <- fit$cluster
+
+	#inputting frequency of each cluster
+	for (i in 1:length(clusvec)) {
+		prob[clusvec[i],1] = prob[clusvec[i],1] + 1
+	}
+
+	#divide by cluster size to get length
+	for (i in 1:numClusters) {
+		prob[i,1] = prob[i,1] / length(clusvec)
+		prob[i,2] = fit$centers[i,1]
+		prob[i,3] = fit$centers[i,2]
+	}
+	return(prob)
 }
 
-#usage:
+
+
+
+
+
+
+
+
+
+
+#usage:OLD? DONT NEED TO APPEND NUMCLUSTERS TO 3RD COL OF MATRIX?
 #input: matrix of endpoints (n x 2) matrix, # of clusters to be created
 #output: returns a (n x 3) matrix, third column denots the cluster 
 	#the point belongs to
@@ -107,36 +152,28 @@ getClusteredEndpoint <- function(similarEndPoints,numClusters) {
 	return (similarEndPoints)
 }
 
-#usage:
-#input: (n x 3) matrix of the points and the clusters they belong to
-#output: (#clusters x 3) matrix denoting mean of coordinates in each
-	#cluster and probability 
-#getEndpointProbabilities <- function(
-
-#PREPARATION GOES AS FOLLOWS:
+#Algorithm GOES AS FOLLOWS:
 #1. specify file to read from
-#coords <- getAllCoords("test.csv")
-
 #2. define boundaries given these data
-#fourvector <- getMaxMins(coords)
-
 #3. reformat your data
-#coords <- translateAll(coords, fourvector)
-# ** coords is now a normalized set of every tick of every trip
+#4. narrow down our path choices to those only similar to a certain path
+#5. determine the number of clusters to be used (TBD)
+#6. use kmeans to output probability for each cluster 
 
-#4. we consider only similar paths to our unknown path
-#get a vector 'similars' that contains the indicies (within coords) of these paths
+main <- function(file) {
+	coords <- getAllCoords(file)
+	fourvector <- getMaxMins(coords)
+	coords <- translateAll(coords, fourvector)
+	
+	#must define here what path to try to predict + which ticks to use
+	mat <- getSimilarityMatrix(coords, 1, 1, 4)
 
-#5. take only the endpoints as we will only consider them for clustering
-#endpoints <- getEndpointMatrix(coords, similars)
-# ** endpoints is now a length(similars) x 2 matrix containing all x and y
-# coordinates of the endpoints
+	#must define here what number of clusters is?
+	numClusters <- 5
+	
+	prob <- getProbabilities(mat, numClusters)
+	return(prob)
+}
 
-#6 determine the number of clusters to be used (TBD)
-
-#7 append the cluster each point belongs to into the matrix
-#similarEndpoints <- getClusteredEndpoint(endpoints, numClusters)
-
-#8 get a probability
 
 
