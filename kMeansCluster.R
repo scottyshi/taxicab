@@ -160,16 +160,19 @@ getClusteredEndpoint <- function(similarEndPoints,numClusters) {
 #5. determine the number of clusters to be used (TBD)
 #6. use kmeans to output probability for each cluster 
 
-main <- function(file) {
+main <- function(file,arg=1) {
 	coords <- getAllCoords(file)
 	fourvector <- getMaxMins(coords)
 	coords <- translateAll(coords, fourvector)
 	
 	#must define here what path to try to predict + which ticks to use
-	mat <- getSimilarityMatrix(coords, 1, 1, 4)
-
+	mat <- getSimilarityMatrix(coords, arg, 1, 4)
+	
 	#must define here what number of clusters is?
 	numClusters <- 5
+
+	if (length(mat)/2 <= numClusters) numClusters <- length(mat)/2-1
+	
 	
 	prob <- getProbabilities(mat, numClusters)
 	return(prob)
