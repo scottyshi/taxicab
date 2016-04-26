@@ -44,18 +44,40 @@ getPartitions <- function(file, start, interval=10) { #default searches for 10 M
 	        drivers[numdrivers] = i #saving the data index
 	        numdrivers <- numdrivers + 1
 	    }
-	    if(data$TIMESTAMP[i] >= start && data$TIMESTAMP[i] < (start + interval*60)) #this is an available customer in this time frame
+	    else if(data$TIMESTAMP[i] >= start && data$TIMESTAMP[i] < (start + interval*60)) #this is an available customer in this time frame
 	    {
 	        customers[numcust] = i
 	        numcust <- numcust + 1
 	    }
 	}
 	#now i have a list of drivers that are free WITH duplicates
+	#I want to keep unique driver id's and getting rid of duplicates with earlier time stamps
 	#I will remove all duplicate taxi IDs in the following way (as well as keeping the most recent duplicate trip)
+	remove <- vector()
+	remcnt <- 1
+	uniqueid <- vector()
+	uniqcnt <- 2
+	uniqueid[1] = drivers[length(drivers)]
+	for(i in (length(drivers)-1):1) {#look at all drivers
+	    uni <- TRUE
+	    for(j in 1:length(uniqueid)) {#compare against unique list
+	        if(data$TAXI_ID[i] == data$TAXI_ID[uniqueid[j]]) {#duplicate
+	            remove[remcnt] = i
+	            remcnt <- remcnt + 1
+	            uni <- FALSE
+	        }
+	    }
+	    if(uni) {#if it was unique, append to uniques
+	        uniqueid[uniqcnt] = i
+	        uniqcnt <- uniqcnt + 1
+	    }
+	}
+	drivers <- uniqueid
 	
 	#i also have a list of all customers in this time period
-	partitions <- matrix(nrow=(max(numcust, numdrivers)), ncol=2) #col 1 = taxi drivers, col2 = customers
-	for(i in 1:(max(numcust, numdrivers))) {
+	dim <- max(length(customers), length(drivers))
+	partitions <- matrix(nrow=dim, ncol=2) #col 1 = taxi drivers, col2 = customers
+	for(i in 1:dim) {
 	    partitions[i,1] = drivers[i]
 	    partitions[i,2]= customers[i]
 	}
@@ -66,5 +88,6 @@ getPartitions <- function(file, start, interval=10) { #default searches for 10 M
 
 
 #getMatching
+#data MUST be sorted by TIMESTAMP
 #match free taxi drivers and waiting customers based on distance
 	#closer = better match
