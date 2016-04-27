@@ -10,8 +10,8 @@ options(digits=8)
 	#completed taxi driver
 #Waiting Customers: trips that have not started yet within the given time interval
 
-getPartitions <- function(file, start, interval=10) { #default searches for 10 MINUTE intervals
-	data <- read.csv(file, head=TRUE, sep=",") #reading the csv file
+predictOffline <- function(filename,start,interval=10) {
+	data <- read.csv(filename, head=TRUE, sep=",") #reading the csv file
 	polylines <- data$POLYLINE # this will grab all the polylines from the data
 	polylines <- levels(polylines) #this will contain all the data w/o suffix summary
 	coords <- list()
@@ -32,7 +32,13 @@ getPartitions <- function(file, start, interval=10) { #default searches for 10 M
 	
 	#sort entire datalist by timestamp
 	data <- data[order(data$TIMESTAMP),]
+	partition <- getPartitions(data,start,interval)
+## for now, return partition. The next step is for each customer and driver, build sorted list of preferences, do bipartite matching
 	
+}
+#Takes DATA in sorted format.
+getPartitions <- function(data, start, interval) { #default searches for 10 MINUTE intervals
+		
 	drivers <- vector()
 	customers <- vector()
 	numdrivers <- 1
@@ -58,21 +64,21 @@ getPartitions <- function(file, start, interval=10) { #default searches for 10 M
 	uniqueid <- vector()
 	uniqcnt <- 2
 	uniqueid[1] = drivers[length(drivers)]
-	for(i in (length(drivers)-1):1) {#look at all drivers
-	    uni <- TRUE
-	    for(j in 1:length(uniqueid)) {#compare against unique list
-	        if(data$TAXI_ID[i] == data$TAXI_ID[uniqueid[j]]) {#duplicate
-	            remove[remcnt] = i
-	            remcnt <- remcnt + 1
-	            uni <- FALSE
-	        }
-	    }
-	    if(uni) {#if it was unique, append to uniques
-	        uniqueid[uniqcnt] = i
-	        uniqcnt <- uniqcnt + 1
-	    }
-	}
-	drivers <- uniqueid
+	#for(i in (length(drivers)-1):1) {#look at all drivers
+	    #uni <- TRUE
+	    #for(j in 1:length(uniqueid)) {#compare against unique list
+	       # if(data$TAXI_ID[i] == data$TAXI_ID[uniqueid[j]]) {#duplicate
+	       #     remove[remcnt] = i
+	      #      remcnt <- remcnt + 1
+	     #       uni <- FALSE
+	    #    }
+	    #}
+	    #if(uni) {#if it was unique, append to uniques
+	      #  uniqueid[uniqcnt] = i
+	     #   uniqcnt <- uniqcnt + 1
+	    #}
+	#}
+	#drivers <- uniqueid
 	
 	#i also have a list of all customers in this time period
 	dim <- max(length(customers), length(drivers))
