@@ -34,8 +34,14 @@ predictOffline <- function(filename,start,interval=10) {
 	data <- data[order(data$TIMESTAMP),]
 	partition <- getPartitions(data,start,interval)
 ## for now, return partition. The next step is for each customer and driver, build sorted list of preferences, do bipartite matching
-	
 }
+
+
+getCustomerPrefList(data,customerIndex) {
+	
+
+}
+
 #Takes DATA in sorted format.
 getPartitions <- function(data, start, interval) { #default searches for 10 MINUTE intervals
 		
