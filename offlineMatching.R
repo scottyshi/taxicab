@@ -86,8 +86,21 @@ getPartitions <- function(file, start, interval=10) { #default searches for 10 M
 	#free drivers and customers to create a bipartite matching problem
 }
 
+#distance function between two points
+#returns the distance between the two points
+distance <- function(p1, p2) { #i.e. pass in coords[[somedriver]][[length(coords[[somedriver]])]] for p1 point
+                              #pass in coords[[somecustomer]][[1]] for p2 point
+    xsq <- (p1[1] - p2[1])^2
+    ysq <- (p1[2] - p2[2])^2
+    return (sqrt(xsq + ysq))
+}
 
-#getMatching
-#data MUST be sorted by TIMESTAMP
-#match free taxi drivers and waiting customers based on distance
-	#closer = better match
+#getMatching -- match waiting customers to free taxi drivers (closer = beter match)
+#usage: will return the matching of customers to drivers with the least distance between all pairs
+#input:
+#coords passed in MUST be first sorted by TIMESTAMP then NORMALIZED (same way it was sorted when used to get drivers/customers)
+#partitions is the list of all free drivers/waiting customers that was generated from the previous method
+#output: pairs of indices that denote which driver gets paired with which customer
+getMatching <- function(coords, partitions) {
+  
+}
