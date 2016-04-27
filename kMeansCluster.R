@@ -178,5 +178,24 @@ main <- function(file,arg=1) {
 	return(prob)
 }
 
+#Assumptions:
+#No moving after
+#All cars have same gas milage
+#Bipartide graph matching
+#Starting time and half an hour
+#Lastly,
+#Take a look at fairness
+#Each taxi driver should get some amount of trips
+#Guess when taxi driver should be free.
 
+#Another model, two different drivers, how likely
+#Are they to take the same route, or the same time
+
+#Learn Bipartite
+#Linear Regression
+#Polynomial Regression
+#CART
+#Build model 
+#Predict end point from first k readings, how can we do that
+#Support Vector Machine
 
