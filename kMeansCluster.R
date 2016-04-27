@@ -178,6 +178,7 @@ main <- function(file,arg=1) {
 	return(prob)
 }
 
+
 #Assumptions:
 #No moving after
 #All cars have same gas milage
@@ -199,3 +200,26 @@ main <- function(file,arg=1) {
 #Predict end point from first k readings, how can we do that
 #Support Vector Machine
 
+#ENDGOAL: allocate drivers in a way that minimum gas is used
+
+#ASSUMPTIONS: 
+#once i'm done with ride, i stop unless i see PURPOSE
+#all cars spend same amt of gas for same trip
+
+#IN PROGRESS:
+#do bipartite matching between unbusy drivers and customers
+
+#FUTURE TASKS:
+#1. see how "fair" we are --> how many rides we all get 
+# --> each taxi driver should get a minimum number of trips
+#2. predict when taxi driver will be free based on which cluster it might end up in
+# --> try to have an offline solution in the meantime
+#3. given 2 different drivers, how likely is that if they go on the same
+#path will they take the same time to complete the trip?
+
+
+#statistical techniques
+# linear regression
+# polynomial regression
+# CART: classification and regresstion trees
+# look at first 'k' ticks and plot how likely you are to predict correctly 
