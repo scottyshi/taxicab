@@ -32,11 +32,11 @@ predictOffline <- function(filename,start,interval=10) {
 	
 	#sort entire datalist by timestamp
 	data <- data[order(data$TIMESTAMP),]
-	partition <- getPartitionGraph(data,start,interval)
+	partition <- getPartitionGraph(data,coords,start,interval)
 	partition <- weightEdges(data,coords,partition,start)
-	
+	matching <- maximum.bipartite.matching(partition)
 ## for now, return partition. The next step is for each customer and driver, build sorted list of preferences, do bipartite matching
-	return (maximum.bipartite.matching(partition))
+	return (matching)
 }
 
 mapIDtoIndex<- function(data,ID,timestamp) {
@@ -68,14 +68,20 @@ weightEdges <- function(data,coords, igraph,start) {
 
 }
 
-getPartitionGraph <- function(data, start, interval) { #default searches for 10 MINUTE intervals
+getPartitionGraph <- function(data,coords, start, interval) { #default searches for 10 MINUTE intervals
 	drivers <- vector()
 	customers <- vector()
+	specdrivers <- vector()
 	#GETTING INDICIES OF FREE DRIVERS
 	for (i in 1:length(data$TIMESTAMP)) {
 	                                      #I add seconds to it's start timestamp to see when it ends (every tick = 15 seconds)
-	    if(data$TIMESTAMP[i] < start && (data$TIMESTAMP[i] + (length(coords[[i]])-1)*15) <= start) { #we have a free driver
-	        drivers <- c(drivers,data$TAXI_ID[i]) #taxi I
+	    if(data$TIMESTAMP[i] < start) { #we have a free driver
+		if ((data$TIMESTAMP[i] + (length(coords[[i]])-1)*15) <= start) {#bleeds into the interval
+			specdrivers <- c(specdrivers,i)
+		}
+		else {
+	        	drivers <- c(drivers,data$TAXI_ID[i]) #taxi I
+		}
 	    }
 	    else if(data$TIMESTAMP[i] >= start && data$TIMESTAMP[i] < (start + interval*60)) #this is an available customer in this time frame
 	    {
@@ -95,6 +101,17 @@ getPartitionGraph <- function(data, start, interval) { #default searches for 10 
 	}
 
 	igraph <- graph.data.frame(partitions,directed=FALSE)
+
+	set.edge.attribute(igraph,"spec",E(igraph),FALSE)
+	edges <- vector()
+	for (driver in specdrivers) {
+		for (i in 1:length(customers)) {
+			if ((data$TIMESTAMP[driver] + (length(coords[[driver]])-1)*15) <= data$TIMESTAMP[i]) ### IN THE FUTURE GUESS THE TIME THAT HE'S DONE
+				edges <- c(edges,i,data$DRIVER_ID[driver])
+
+		}
+	}
+	add_edges(igraph,edges,spec=TRUE)
 	V(igraph)$type<-bipartite.mapping(igraph)$type
 	return (igraph)
 	#return all of these indicies, can use it to grab endpoints of all
@@ -157,8 +174,9 @@ getPartitions <- function(data, start, interval) { #default searches for 10 MINU
 	#free drivers and customers to create a bipartite matching problem
 }
 
-
-
+#Finish bipartite
+#
+#time of day
 #getMatching -- match waiting customers to free taxi drivers (closer = beter match)
 #usage: will return the matching of customers to drivers with the least distance between all pairs
 #input:
