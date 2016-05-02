@@ -12,6 +12,7 @@ last <- function(x) { tail(x, n = 1) }
 
 predictOffline <- function(filename,start,interval=10) {
 	data <- read.csv(filename, head=TRUE, sep=",") #reading the csv file
+	data <- data[order(data$TIMESTAMP),]
 	polylines <- data$POLYLINE # this will grab all the polylines from the data
 	polylines <- levels(polylines) #this will contain all the data w/o suffix summary
 	coords <- list()
@@ -31,12 +32,14 @@ predictOffline <- function(filename,start,interval=10) {
 	}
 	
 	#sort entire datalist by timestamp
-	data <- data[order(data$TIMESTAMP),]
+	
+	
 	partition <- getPartitionGraph(data,coords,start,interval)
 	partition <- weightEdges(data,coords,partition,start)
 	matching <- maximum.bipartite.matching(partition)
-## for now, return partition. The next step is for each customer and driver, build sorted list of preferences, do bipartite matching
 	return (matching)
+## for now, return partition. The next step is for each customer and driver, build sorted list of preferences, do bipartite matching
+	
 }
 
 mapIDtoIndex<- function(data,ID,timestamp) {
@@ -55,14 +58,28 @@ pointDistance <- function(p1, p2) { #i.e. pass in coords[[somedriver]][[length(c
     ysq <- (as.numeric(p1[2]) - as.numeric(p2[2]))^2
     return (sqrt(xsq + ysq))
 }
+
+
+
+
+
+
 weightEdges <- function(data,coords, igraph,start) {
 	edges <- E(igraph)
 	for (i in 1:length(edges)) {
-		tuple <- ends(igraph,edges[i])
-		coord1 <- coords[[as.numeric(tuple[1])]][[1]]
-		coord2 <- last(coords[[mapIDtoIndex(data,tuple[2],start)]])[[1]]
-		dist <- pointDistance(coord1,coord2)
-		igraph <- set.edge.attribute(igraph,"weight",i,1/dist)
+		if (edges$spec[i] == FALSE) {
+			tuple <- ends(igraph,edges[i])
+			coord1 <- coords[[as.numeric(tuple[1])]][[1]]
+			coord2 <- last(coords[[mapIDtoIndex(data,tuple[2],start)]])[[1]]
+			dist <- pointDistance(coord1,coord2)
+			igraph <- set.edge.attribute(igraph,"weight",i,1/dist)
+		}
+		else {
+			tuple <- ends(igraph,edges[i])
+			coord1 <- coords[[as.numeric(tuple[1])]][[1]]
+			dist <- getPredictedDistance(data,coords,12,tuple[2],start,coord1)
+			igraph <- set.edge.attribute(igraph,"weight",i,1/dist)
+		}
 	}
 	return (igraph)
 
@@ -102,16 +119,17 @@ getPartitionGraph <- function(data,coords, start, interval) { #default searches 
 
 	igraph <- graph.data.frame(partitions,directed=FALSE)
 
-	set.edge.attribute(igraph,"spec",E(igraph),FALSE)
-	edges <- vector()
+	igraph <- set.edge.attribute(igraph,"spec",E(igraph),FALSE)
+	e <- list()
 	for (driver in specdrivers) {
 		for (i in 1:length(customers)) {
-			if ((data$TIMESTAMP[driver] + (length(coords[[driver]])-1)*15) <= data$TIMESTAMP[i]) ### IN THE FUTURE GUESS THE TIME THAT HE'S DONE
-				edges <- c(edges,i,data$DRIVER_ID[driver])
+			if ((data$TIMESTAMP[driver] + (length(coords[[driver]])-1)*15) <= data$TIMESTAMP[i])
+			e <- append(e,i)
+			e <- append(e,data$TAXI_ID[driver])
 
 		}
 	}
-	add_edges(igraph,edges,spec=TRUE)
+	igraph <- add_edges(igraph,e,spec=TRUE)
 	V(igraph)$type<-bipartite.mapping(igraph)$type
 	return (igraph)
 	#return all of these indicies, can use it to grab endpoints of all
@@ -174,15 +192,94 @@ getPartitions <- function(data, start, interval) { #default searches for 10 MINU
 	#free drivers and customers to create a bipartite matching problem
 }
 
-#Finish bipartite
-#
-#time of day
-#getMatching -- match waiting customers to free taxi drivers (closer = beter match)
-#usage: will return the matching of customers to drivers with the least distance between all pairs
-#input:
-#coords passed in MUST be first sorted by TIMESTAMP then NORMALIZED (same way it was sorted when used to get drivers/customers)
-#partitions is the list of all free drivers/waiting customers that was generated from the previous method
-#output: pairs of indices that denote which driver gets paired with which customer
-getMatching <- function(coords, partitions) {
-  
+
+
+getPredictedDistance <- function(data,coords,usingFirstN,ID,stamp,coord1) {
+	i <- mapIDtoIndex(data,ID,stamp)
+	matrix <- getSimilarityUpToMatrix(coords,i,usingFirstN,.9999999)
+
+	numClusters <- 5
+	mat <- getProbabilities(matrix,numClusters)
+	distance <- 0
+	for (i in 1:(length(mat)/3)) {
+		coord2 <- c(mat[i,2],mat[i,3])
+		distance <- distance+ mat[i,1] * pointDistance(coord1,coord2)
+	}
+	return (distance)
 }
+
+#### TAKEN FROM KMEANS
+
+getProbabilities <- function(mat, numClusters) {
+	fit <- kmeans(mat, numClusters)
+	prob <- matrix(nrow=numClusters, ncol=3)
+	#initalizing all probabilities by 0
+	for (i in 1:numClusters) {
+		prob[i,1] = 0
+	}
+	clusvec <- fit$cluster
+
+	#inputting frequency of each cluster
+	for (i in 1:length(clusvec)) {
+		prob[clusvec[i],1] = prob[clusvec[i],1] + 1
+	}
+
+	#divide by cluster size to get length
+	for (i in 1:numClusters) {
+		prob[i,1] = prob[i,1] / length(clusvec)
+		prob[i,2] = fit$centers[i,1]
+		prob[i,3] = fit$centers[i,2]
+	}
+	return(prob)
+}
+
+getSimilarityUpToMatrix <- function(coords, indexOfTrip,untilIndex,threshold=.999) {
+	
+	len <- length(coords)
+
+	masterList <- c()
+
+	for (i in 1:len)
+	{
+		if (i == indexOfTrip) next
+		for (j in 2:untilIndex) {
+			
+			if (length(coords[[i]]) < j) break
+			comparisonVector <- c(coords[[indexOfTrip]][[1]],coords[[indexOfTrip]][[j]])
+			if (cosineSimilarity(c(coords[[i]][[1]], coords[[i]][[j]]),comparisonVector) >= threshold)
+			{
+				if (j == untilIndex) {		
+					masterList <- c(masterList, i)
+				}
+			} else {
+				break
+			}
+		}
+	}
+
+	matrix <- matrix(nrow=length(masterList), ncol=2)
+	for (i in 1:length(masterList)) {
+		matrix[i,1]=coords[[masterList[i]]][[length(coords[[masterList[i]]])]][1]
+		matrix[i,2]=coords[[masterList[i]]][[length(coords[[masterList[i]]])]][2]
+	}
+	return (matrix)
+}
+
+cosineSimilarity <- function(vector1,vector2) {
+	#if (length(vector1) != length(vector2)) {
+	#	return NULL;
+	#}
+	dotProduct = 0;
+	length1 = 0;
+	length2 = 0;
+	for (i in 1:length(vector1)) {
+		dotProduct <- dotProduct + vector1[i] * vector2[i];
+		length1 <- length1 + (vector1[i])^2;
+		length2 <- length2 + (vector2[i])^2;
+	}
+	length1 <- sqrt(length1);
+	length2 <- sqrt(length2);
+	product <- dotProduct/(length1 * length2);
+	return (product);
+}
+
