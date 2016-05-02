@@ -38,7 +38,7 @@ getMaxMins <- function(coords) {
 			Y <- c(Y,as.numeric(coords[[i]][[j]][2]))
 		} 
 	}
-	return (c(min(X),max(X),min(Y),max(Y)))
+	return (c(min(X, na.rm=TRUE),max(X, na.rm=TRUE),min(Y, na.rm=TRUE),max(Y, na.rm=TRUE)))
 }
 
 #taken from "reformatXY.R"
