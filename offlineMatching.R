@@ -59,20 +59,20 @@ getCoords <- function(data) {
 	return (coords)
 }
 
-getSet <- function(filename,num) {
+getSet <- function(filename,num,interval=10,isFix=FALSE) {
 	data <- read.csv(filename, head=TRUE, sep=",") #reading the csv file
 	data <- data[order(data$TIMESTAMP),]
 	coords <- getCoords(data)
 	
 	minTime <- data$TIMESTAMP[1]
-	maxTime <- last(data$TIMESTAMP) - 10
+	maxTime <- last(data$TIMESTAMP) - interval
 	set <- c()
 	startSet <- sample(minTime:maxTime,num)
 
 	for (time in startSet) {
 		print("Looking at the following time:")
 		print(time)
-		tuple <- findIncrease(data,coords,time,5)
+		tuple <- findIncrease(data,coords,time,interval,isFix)
 		print("Result is:")
 		print(tuple)
 		set <- c(set,tuple[1]/tuple[2])
@@ -80,13 +80,13 @@ getSet <- function(filename,num) {
 	return (set)
 }
 
-findIncrease <- function(data,coords,start,interval=10) {
+findIncrease <- function(data,coords,start,interval=10,isFix=FALSE) {
 	###TAKEN FROM PREDICTOFFLINE
 	
 	
 	
 	
-	partition <- getPartitionGraph(data,coords,start,interval)
+	partition <- getPartitionGraph(data,coords,start,interval,isFix)
 	print("Got graph, now weighting edges")
 	partition <- weightEdges(data,coords,partition,start)
 	print("Now matching")
@@ -108,14 +108,14 @@ compare <- function(data,coords,match) {
 		for (j in (index-1):1) {
 			foundID <- data$TAXI_ID[index]
 			if (data$TAXI_ID[j] == ID) {
-				predictedDists <- c(predictedDists,pointDistanceLatLongToKM(coords[[index]][[1]],last(coords[[j]])[[1]]))
+				predictedDists <- c(predictedDists,pointDistanceLatLongToKMEff(coords[[index]][[1]],last(coords[[j]])[[1]]))
 				break
 			}
 		}
 		for (k in (index-1):1) {
 			foundID <- data$TAXI_ID[index]
 			if (data$TAXI_ID[k] == foundID) {
-				actualDists <- c(actualDists,pointDistanceLatLongToKM(coords[[index]][[1]],last(coords[[k]])[[1]]))
+				actualDists <- c(actualDists,pointDistanceLatLongToKMEff(coords[[index]][[1]],last(coords[[k]])[[1]]))
 				break
 			}
 		}
@@ -130,7 +130,7 @@ predictOffline <- function(filename,start,interval=10) {
 	#sort entire datalist by timestamp
 	
 	
-	partition <- getPartitionGraph(data,coords,start,interval)
+	partition <- getPartitionGraph(data,coords,start,interval,FALSE)
 	print("Got graph, now weighting edges")
 	partition <- weightEdges(data,coords,partition,start)
 	print("Now matching")
@@ -163,6 +163,15 @@ pointDistanceLatLongToKM <- function(p1, p2) { #i.e. pass in coords[[somedriver]
 	c <- 2 * atan2(sqrt(a),sqrt(1-a))
     return (6371 * c) #Earth's radius times fraction in KM
 }
+pointDistanceLatLongToKMEff <- function(p1,p2) {
+	phi1 <- p1[2] * pi / 180.0
+	phi2 <- p2[2] * pi / 180.0
+	lambda1 <- p1[1] * pi / 180.0
+	lambda2 <- p2[1] * pi / 180.0
+	x <- (lambda2 - lambda1) * cos((phi1 + phi2)/2);
+	y <- (phi2 - phi1);
+	return (sqrt(x*x + y*y) * 6371)	
+}
 
 
 
@@ -184,10 +193,10 @@ weightEdges <- function(data,coords, igraph,start) {
 				print("Assigning no weight, found an error")
 					igraph <- set.edge.attribute(igraph,"weight",i,0)
 				}
-				else {
+			else {
 				coord1 <- coords[[num1]][[1]]
 				coord2 <- last(coords[[num2]])[[1]]
-				dist <- pointDistanceLatLongToKM(coord1,coord2)
+				dist <- pointDistanceLatLongToKMEff(coord1,coord2)
 				igraph <- set.edge.attribute(igraph,"weight",i,1/dist)
 			}
 		}
@@ -207,11 +216,13 @@ weightEdges <- function(data,coords, igraph,start) {
 
 }
 
-getPartitionGraph <- function(data,coords, start, interval) { #default searches for 10 MINUTE intervals
+getPartitionGraph <- function(data,coords, start, interval,isFix) { #default searches for 10 MINUTE intervals
+	eighthours <- 21600
 	drivers <- vector()
 	customers <- vector()
 	specdrivers <- vector()
 	specdriversIDs <- vector()
+	ceiling <- start - eighthours
 	#GETTING INDICIES OF FREE DRIVERS
 	for (i in 1:length(data$TIMESTAMP)) {
 	                                      #I add seconds to it's start timestamp to see when it ends (every tick = 15 seconds)
@@ -220,9 +231,17 @@ getPartitionGraph <- function(data,coords, start, interval) { #default searches 
 				specdrivers <- c(specdrivers,i)
 				specdriversIDs <- c(specdriversIDs,data$TAXI_ID[i])
 			}
-		else {
-	        	drivers <- c(drivers,data$TAXI_ID[i]) #taxi I
-		}
+			else {
+				if (isFix) {
+					if (data$TIMESTAMP[i] > ceiling) {
+			        	drivers <- c(drivers,data$TAXI_ID[i])
+
+					}
+				}else {
+		        	drivers <- c(drivers,data$TAXI_ID[i])
+
+		        }
+			}
 	    }
 	    else if(data$TIMESTAMP[i] >= start && data$TIMESTAMP[i] < (start + interval*60)) #this is an available customer in this time frame
 	    {
@@ -360,7 +379,7 @@ getPredictedDistance <- function(data,coords,usingFirstN,ID,stamp,coord1) {
 	distance <- 0
 	for (i in 1:(length(mat)/3)) {
 		coord2 <- c(mat[i,2],mat[i,3])
-		distance <- distance+ mat[i,1] * pointDistanceLatLongToKM(coord1,coord2)
+		distance <- distance+ mat[i,1] * pointDistanceLatLongToKMEff(coord1,coord2)
 	}
 	return (distance)
 }
@@ -444,5 +463,62 @@ cosineSimilarity <- function(vector1,vector2) {
 }
 
 
+#5 min
+#Without fix:
+#7.3203704 45.1062842 7.3620941 17.0864597  12.1044660   5.9928675   7.2340245   6.8410574   5.4123782
+#5.3110898 14.5242528 6.0049784  3.9342630 10.5648581 29.1919206 28.7832007 4.8366179 13.8078934  9.3963076 
+#3.7739247 8.6727354 4.1182088 9.0735484 12.8027255 8.6788781 26.7265384 8.6418278 3.0499607
+#avg: 11.65549 sd: 9.7238292 n: 28 err: 3.77050609
+#95%: 7.8849831-15.425998
+
+#With fix:
+#5.7173913 5.3305084 2.4407407407 3.7030404738 7.168412469 5.9402985 9.225 8.5092834 2.6990291 6.0727969349
+#6.2314939435 8.2858014  2.6988561 11.1338995 15.0352973  6.0680407  6.2314232 10.1990393  1.1927546  2.2150139 18.2575267
+
+#avg: 6.8740785 sd: 4.2481649 n: 21
+#95%: 4.940337-8.80782
+
+#10 min
+#Without fix:
+#3.7210634 4.4653802 4.4922030 5.3055759 9.7396773 3.9532887 2.4618673 8.5389270 3.1876470 9.3585340
+#avg: 5.5224164 sd: 2.6739744 n: 10
 
 
+#With fix:
+#5.8810389 9.4576488 3.3085635 4.5319725 4.0596457
+#avg: 5.4477739 sd: 2.4294356 n: 5
+
+#15 min
+#Without fix:
+#1.4788087 5.2140379 3.0082882 1.8008081 5.2961147
+#avg: 3.3596115 sd: 1.8220632 n: 5 err: 2.2623903
+
+
+#With fix:
+#2.8131224 2.9310489 2.8542691 2.7118160 3.3912806
+#avg: 2.9403074 sd: n: 5 err: 0.32807284
+
+#20 min
+#Without fix:
+#2.6823376997 3.2184057884 3.5909831314 2.8954200789
+#avg: 3.0967867 sd: n: 4 err: 0.63072
+#With fix:
+#2.5798319328 2.6004853 2.3062411 1.5525598304 1.5530792 4.1091349 1.5461200091
+#avg: 2.3210646 sd: n: 7 err: 0.85461885
+
+#ggplot(data, aes(x=intervals, y=avgs, colour=fix, group=fix)) + 
+#     geom_errorbar(aes(ymin=avgs-.5, ymax=avgs+.5), colour="black", width=.1,position=pd) +
+#     geom_line(position=pd) +
+#     geom_point(size=3, shape=21, fill="white",position=pd) + # 21 is filled circle
+#     xlab("Time Window (sec)") +
+#     ylab("Multiplicative Speedup (x)") + geom_text(aes(label=round(avgs,2),y=ifelse(fix==TRUE,avgs-0.75,avgs+0.75))) +
+#     scale_colour_hue(name="Result Type",    # Legend label, use darker colors
+#                      breaks=c("TRUE", "FALSE"),
+#                      labels=c("With Driver Correction", "Without Driver Correction"),
+#                      l=40) +                    # Use darker colors, lightness=40
+#     ggtitle("Algorithm Comparison\nwith Correction and Window Variation") +
+#     expand_limits(y=0) +                        # Expand y range
+#     scale_y_continuous(breaks=0:20*2) +         # Set tick every 4
+#     theme_bw() +
+#     theme(legend.justification=c(1,0),
+#          legend.position=c(1,0))  
