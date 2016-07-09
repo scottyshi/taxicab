@@ -5,6 +5,7 @@
 The data that was used came in the following format:
 - Timestamp
 - Unique ID for the trip
+- Driver ID
 - Boolean (for whether or not the trip data was complete)
 - Vector of coordinates that denoted the taxi's position every 15 seconds.
 
