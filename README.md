@@ -1,5 +1,4 @@
-# Taxicab Prediction Directed Research Project 
-# (Miodrag Potkojnak)
+# Taxicab Prediction: Directed Research (Miodrag Potkojnak)
 
 ## Context
 
